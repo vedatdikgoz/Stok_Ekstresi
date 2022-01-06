@@ -1,0 +1,41 @@
+﻿-- Author:		<Vedat Dikgöz>
+-- Create date: <6.1.2022>
+-- Description:	<TestProcedure>
+-- =============================================
+CREATE PROCEDURE TestProcedure
+	@Malkodu varchar(30)=null,
+	@BaslangicTarihi int=null,
+	@BitisTarihi int=null
+	
+	
+AS
+
+BEGIN
+
+DECLARE @IslemTur smallint
+DECLARE @Stok int=0
+DECLARE @GirisMiktar int
+DECLARE @CikisMiktar int
+DECLARE StokCursor CURSOR FOR
+SELECT IslemTur,IIf(IslemTur = 0 ,Miktar , 0),IIf(IslemTur = 1 ,Miktar , 0) FROM dbo.STI
+OPEN StokCursor
+FETCH NEXT FROM StokCursor INTO @IslemTur, @GirisMiktar ,@CikisMiktar
+WHILE @@FETCH_STATUS = 0
+BEGIN
+
+ if (@IslemTur=0)
+      SET @Stok += @GirisMiktar
+  else
+	  SET @Stok -= @CikisMiktar
+   
+   
+FETCH NEXT FROM StokCursor INTO @IslemTur, @GirisMiktar,@CikisMiktar
+END
+
+CLOSE StokCursor
+DEALLOCATE StokCursor
+
+
+SELECT ID as [SiraNo], IIf(IslemTur = 0 , 'Giriş' , 'Çıkış') as IslemTur, EvrakNo, CONVERT(VARCHAR(15), CAST(Tarih - 2 AS datetime), 104) as [Tarih], MalKodu, IIf(IslemTur = 0 ,Miktar , 0) as [GirisMiktar],IIf(IslemTur = 1 ,Miktar , 0) as [CikisMiktar], @Stok as [Stok] from dbo.STI where Tarih>@BaslangicTarihi and Tarih<@BitisTarihi or MalKodu=@Malkodu order by ID,Tarih
+END
+GO
